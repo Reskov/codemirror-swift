@@ -30,6 +30,11 @@ public class CodeMirrorViewModel: ObservableObject {
     }
 
     public func setContent(_ value: String) {
+        guard let executeJS = executeJS else {
+            print("executeJS is not initialized")
+            return
+        }
+        
         executeJS(
             JavascriptFunction(
                 functionString: "CodeMirror.setContent(value)",

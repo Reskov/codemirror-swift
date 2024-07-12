@@ -3,10 +3,12 @@ import { javascript } from "@codemirror/lang-javascript";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
-import { html } from "@codemirror/lang-html";
 import { json } from "@codemirror/lang-json";
 import { xml } from "@codemirror/lang-xml";
-import { css } from "@codemirror/lang-css";
+import { python } from "@codemirror/lang-python";
+import { yaml } from "@codemirror/lang-yaml";
+
+
 import { oneDark } from "@codemirror/theme-one-dark";
 
 import {
@@ -47,8 +49,8 @@ const lineWrapping = new Compartment();
 const SUPPORTED_LANGUAGES_MAP = {
   javascript,
   json,
-  html,
-  css,
+  yaml,
+  python,
   xml,
   txt: () => [],
 };
