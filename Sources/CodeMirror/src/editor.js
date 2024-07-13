@@ -3,7 +3,8 @@ import { javascript } from "@codemirror/lang-javascript";
 import { Compartment, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { indentWithTab } from "@codemirror/commands";
-import { json } from "@codemirror/lang-json";
+import { json, jsonParseLinter } from "@codemirror/lang-json";
+import { linter, lintGutter } from "@codemirror/lint"
 import { xml } from "@codemirror/lang-xml";
 import { python } from "@codemirror/lang-python";
 import { yaml } from "@codemirror/lang-yaml";
@@ -32,7 +33,7 @@ import {
 } from "@codemirror/language";
 
 import { history, defaultKeymap, historyKeymap } from "@codemirror/commands";
-import { search, openSearchPanel, closeSearchPanel, getSearchQuery, highlightSelectionMatches, searchKeymap } from "@codemirror/search";
+import { search, openSearchPanel, closeSearchPanel, searchPanelOpen, highlightSelectionMatches, searchKeymap } from "@codemirror/search";
 import {
   closeBrackets,
   autocompletion,
@@ -47,7 +48,7 @@ const readOnly = new Compartment();
 const lineWrapping = new Compartment();
 const SUPPORTED_LANGUAGES_MAP = {
   javascript,
-  json,
+  json: () => [json(), linter(jsonParseLinter())],
   yaml,
   python,
   xml,
@@ -97,9 +98,10 @@ const editorView = new CodeMirror.EditorView({
     lineWrapping.of([]),
     baseTheme,
     theme.of(oneDark),
-    language.of(json()),
+    language.of([]),
     listener.of([]),
     foldGutter(),
+    lintGutter(),
     codeFolding({
         preparePlaceholder: preparePlaceholder,
         placeholderDOM: placeholderDOM
@@ -137,7 +139,9 @@ function preparePlaceholder(state, range) {
     let count;
     let isObject = true;
     const internal = doc.sliceString(from, to);
-    const lang = language.get(state).language.name;
+    const plugin = language.get(state);
+    const languageObject = Array.isArray(plugin) ? plugin[0] : plugin;
+    const lang = languageObject.language.name;
     
     if (!["python", "javascript", "json"].includes(lang)) {
         // yaml todo
@@ -226,8 +230,7 @@ function setDarkMode(active) {
 }
 
 function toggleSearchPanel() {
-  const isSearchOpen = getSearchQuery(editorView) !== null;
-  if (isSearchOpen) {
+  if (searchPanelOpen(editorView.state)) {
     closeSearchPanel(editorView);
   } else {
     openSearchPanel(editorView);
