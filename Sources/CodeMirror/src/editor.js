@@ -7,6 +7,7 @@ import { json } from "@codemirror/lang-json";
 import { xml } from "@codemirror/lang-xml";
 import { python } from "@codemirror/lang-python";
 import { yaml } from "@codemirror/lang-yaml";
+import { PostgreSQL, sql } from "@codemirror/lang-sql";
 import {foldGutter, codeFolding, syntaxTree} from "@codemirror/language"
 import { oneDark } from "@codemirror/theme-one-dark";
 
@@ -50,6 +51,7 @@ const SUPPORTED_LANGUAGES_MAP = {
   yaml,
   python,
   xml,
+  sql: () =>  sql({ dialect: PostgreSQL, upperCaseKeywords: true }),
   txt: () => [],
 };
 
@@ -136,6 +138,11 @@ function preparePlaceholder(state, range) {
     let isObject = true;
     const internal = doc.sliceString(from, to);
     const lang = language.get(state).language.name;
+    
+    if (!["python", "javascript", "json"].includes(lang)) {
+        // yaml todo
+        return '\u2194';
+    }
 
     // Determine if it's an object/dict or array/list
     const prevLine = doc.lineAt(from).text;
@@ -229,6 +236,7 @@ function toggleSearchPanel() {
 
 function setLanguage(lang) {
   let langFn = SUPPORTED_LANGUAGES_MAP[lang];
+
   editorView.dispatch({
     effects: language.reconfigure(langFn ? langFn() : []),
   });

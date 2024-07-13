@@ -5,4 +5,5 @@ public enum Language: String, CaseIterable, Hashable {
     case python
     case xml
     case txt
+    case sql
 }
