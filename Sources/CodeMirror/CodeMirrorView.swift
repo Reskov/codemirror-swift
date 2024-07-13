@@ -20,15 +20,16 @@ public struct CodeMirrorView: NativeView {
             createWebView(context: context)
         }
 
-        public func updateNSView(_ nsView: WKWebView, context: Context) {
+        public func updateNSView(_: WKWebView, context: Context) {
             updateWebView(context: context)
         }
+
     #elseif canImport(UIKit)
         public func makeUIView(context: Context) -> WKWebView {
             createWebView(context: context)
         }
 
-        public func updateUIView(_ nsView: WKWebView, context: Context) {
+        public func updateUIView(_: WKWebView, context: Context) {
             updateWebView(context: context)
         }
     #endif
@@ -46,7 +47,7 @@ public struct CodeMirrorView: NativeView {
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         #if os(OSX)
-            webView.setValue(false, forKey: "drawsBackground")  // prevent white flicks
+            webView.setValue(false, forKey: "drawsBackground") // prevent white flicks
             webView.allowsMagnification = false
         #elseif os(iOS)
             webView.isOpaque = false
@@ -59,8 +60,9 @@ public struct CodeMirrorView: NativeView {
         )
 
         let baseURL = Bundle.module.url(forResource: "build", withExtension: nil)
-        let data = try! Data.init(contentsOf: indexURL!)
+        let data = try! Data(contentsOf: indexURL!)
         webView.load(data, mimeType: "text/html", characterEncodingName: "utf-8", baseURL: baseURL!)
+
         context.coordinator.webView = webView
         return webView
     }
@@ -106,7 +108,7 @@ public struct CodeMirrorView: NativeView {
 public class Coordinator: NSObject {
     var parent: CodeMirrorView
     var viewModel: CodeMirrorViewModel
-    var webView: WKWebView!
+    weak var webView: WKWebView?
 
     private var pageLoaded = false
     private var pendingFunctions = [(JavascriptFunction, JavascriptCallback?)]()
@@ -116,14 +118,13 @@ public class Coordinator: NSObject {
         self.viewModel = viewModel
     }
 
-    internal func queueJavascriptFunction(
+    func queueJavascriptFunction(
         _ function: JavascriptFunction,
         callback: JavascriptCallback? = nil
     ) {
         if pageLoaded {
             evaluateJavascript(function: function, callback: callback)
-        }
-        else {
+        } else {
             pendingFunctions.append((function, callback))
         }
     }
@@ -140,27 +141,25 @@ public class Coordinator: NSObject {
         callback: JavascriptCallback? = nil
     ) {
         // not sure why but callAsyncJavaScript always callback with result of nil
-        if let callback = callback {
-            webView.evaluateJavaScript(function.functionString) { (response, error) in
-                if let error = error {
+        if let callback {
+            webView?.evaluateJavaScript(function.functionString) { response, error in
+                if let error {
                     callback(.failure(error))
-                }
-                else {
+                } else {
                     callback(.success(response))
                 }
             }
-        }
-        else {
-            webView.callAsyncJavaScript(
+        } else {
+            webView?.callAsyncJavaScript(
                 function.functionString,
                 arguments: function.args,
                 in: nil,
                 in: .page
-            ) { (result) in
+            ) { result in
                 switch result {
-                case .failure(let error):
+                case let .failure(error):
                     callback?(.failure(error))
-                case .success(let data):
+                case let .success(data):
                     callback?(.success(data))
                 }
             }
@@ -170,7 +169,7 @@ public class Coordinator: NSObject {
 
 extension Coordinator: WKScriptMessageHandler {
     public func userContentController(
-        _ userContentController: WKUserContentController,
+        _: WKUserContentController,
         didReceive message: WKScriptMessage
     ) {
         switch message.name {
@@ -186,21 +185,21 @@ extension Coordinator: WKScriptMessageHandler {
 }
 
 extension Coordinator: WKNavigationDelegate {
-    public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+    public func webView(_: WKWebView, didFinish _: WKNavigation!) {
         parent.viewModel.onLoadSuccess?()
     }
 
     public func webView(
-        _ webView: WKWebView,
-        didFail navigation: WKNavigation!,
+        _: WKWebView,
+        didFail _: WKNavigation!,
         withError error: Error
     ) {
         parent.viewModel.onLoadFailed?(error)
     }
 
     public func webView(
-        _ webView: WKWebView,
-        didFailProvisionalNavigation navigation: WKNavigation!,
+        _: WKWebView,
+        didFailProvisionalNavigation _: WKNavigation!,
         withError error: Error
     ) {
         parent.viewModel.onLoadFailed?(error)

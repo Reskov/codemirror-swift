@@ -19,7 +19,6 @@ struct ExampleView: View {
             viewModel
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-
         .toolbar {
             ToolbarItem {
                 Toggle(isOn: $viewModel.darkMode, label: { Text("🌖") })
@@ -37,7 +36,6 @@ struct ExampleView: View {
                 } label: {
                     Text("SET")
                 }
-
             }
 
             ToolbarItem {
@@ -53,7 +51,6 @@ struct ExampleView: View {
             ToolbarItem {
                 Toggle(isOn: $viewModel.readOnly, label: { Text("READONLY") })
                     .toggleStyle(.checkbox)
-
             }
             ToolbarItem {
                 Picker("Lang", selection: $viewModel.language) {
@@ -77,23 +74,23 @@ struct ContentView_Previews: PreviewProvider {
 }
 
 private let jsonString = """
-    {
-      "header": {
-        "alg": "EdDSA",
-        "kid": "2023-02-22",
-        "typ": "JWT"
-      },
-      "payload": {
-        "aud": [
-          "plan"
-        ],
-        "exp": 1682484288,
-        "iat": 1682480688,
-        "iss": "https://accounts.toggl.space",
-        "jti": "3810df07c7cb738fcab6caad9e3f78ba",
-        "nbf": 1682480688,
-        "sub": "QpTmkjFk6acasstoN50vp0wf0xL2"
-      },
-      "signature": "EIPCgh2O7IO1HmWfSHtKgSqsFPgPlRiYfiUrwyenEf5AV4rtZc1Na1Vi0T6smCYj7SR0vmz1VO35B6HVsMnKBw"
-    }
-    """
+{
+  "header": {
+    "alg": "EdDSA",
+    "kid": "2023-02-22",
+    "typ": "JWT"
+  },
+  "payload": {
+    "aud": [
+      "plan"
+    ],
+    "exp": 1682484288,
+    "iat": 1682480688,
+    "iss": "https://accounts.toggl.space",
+    "jti": "3810df07c7cb738fcab6caad9e3f78ba",
+    "nbf": 1682480688,
+    "sub": "QpTmkjFk6acasstoN50vp0wf0xL2"
+  },
+  "signature": "EIPCgh2O7IO1HmWfSHtKgSqsFPgPlRiYfiUrwyenEf5AV4rtZc1Na1Vi0T6smCYj7SR0vmz1VO35B6HVsMnKBw"
+}
+"""

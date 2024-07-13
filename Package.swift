@@ -9,11 +9,10 @@ let package = Package(
         .iOS(.v14),
     ],
     products: [
-
         .library(
             name: "CodeMirror",
             targets: ["CodeMirror"]
-        )
+        ),
     ],
     dependencies: [],
     targets: [
@@ -28,8 +27,8 @@ let package = Package(
                 "src/package-lock.json",
             ],
             resources: [
-                .copy("src/build")
+                .copy("src/build"),
             ]
-        )
+        ),
     ]
 )

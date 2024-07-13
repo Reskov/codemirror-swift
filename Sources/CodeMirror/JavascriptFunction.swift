@@ -1,7 +1,6 @@
 public typealias JavascriptCallback = (Result<Any?, Error>) -> Void
 
 public struct JavascriptFunction {
-
     public let functionString: String
     public let args: [String: Any]
 

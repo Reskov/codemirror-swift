@@ -31,7 +31,7 @@ import {
 } from "@codemirror/language";
 
 import { history, defaultKeymap, historyKeymap } from "@codemirror/commands";
-import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
+import { search, openSearchPanel, closeSearchPanel, getSearchQuery, highlightSelectionMatches, searchKeymap } from "@codemirror/search";
 import {
   closeBrackets,
   autocompletion,
@@ -66,6 +66,7 @@ const baseTheme = EditorView.baseTheme({
 const editorView = new CodeMirror.EditorView({
   doc: "",
   extensions: [
+    search({top: true}),
     lineNumbers(),
     highlightActiveLineGutter(),
     highlightSpecialChars(),
@@ -105,6 +106,21 @@ const editorView = new CodeMirror.EditorView({
   parent: document.body,
 });
 
+// Search
+// Ctrl-F / Cmd-F
+// Start searching
+// Ctrl-G / Cmd-G
+// Find next
+// Shift-Ctrl-G / Shift-Cmd-G
+// Find previous
+// Shift-Ctrl-F / Cmd-Option-F
+// Replace
+// Shift-Ctrl-R / Shift-Cmd-Option-F
+// Replace all
+// Alt-F
+// Persistent search (dialog doesn't autoclose, enter to find next, Shift-Enter to find previous)
+// Alt-G
+// Jump to line
 
 // https://github.com/codemirror/language/commit/edb239d35b66608c1e7f9ed37a27b571ecdf9907
 // https://github.com/codemirror/language/blob/main/src/fold.ts
@@ -202,6 +218,15 @@ function setDarkMode(active) {
   });
 }
 
+function toggleSearchPanel() {
+  const isSearchOpen = getSearchQuery(editorView) !== null;
+  if (isSearchOpen) {
+    closeSearchPanel(editorView);
+  } else {
+    openSearchPanel(editorView);
+  }
+}
+
 function setLanguage(lang) {
   let langFn = SUPPORTED_LANGUAGES_MAP[lang];
   editorView.dispatch({
@@ -253,4 +278,5 @@ export {
   setReadOnly,
   setLineWrapping,
   editorView,
+  toggleSearchPanel,
 };

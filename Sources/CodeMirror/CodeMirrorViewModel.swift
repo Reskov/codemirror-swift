@@ -6,7 +6,7 @@ public class CodeMirrorViewModel: ObservableObject {
     public var onLoadFailed: ((Error) -> Void)?
     public var onContentChange: (() -> Void)?
 
-    internal var executeJS: ((JavascriptFunction, JavascriptCallback?) -> Void)!
+    var executeJS: ((JavascriptFunction, JavascriptCallback?) -> Void)!
 
     @Published public var darkMode = false
     @Published public var lineWrapping = false
@@ -14,11 +14,19 @@ public class CodeMirrorViewModel: ObservableObject {
     @Published public var language: Language = .json
 
     private func executeJSAsync<T>(f: JavascriptFunction) async throws -> T? {
-        return try await withCheckedThrowingContinuation { continuation in
+        try await withCheckedThrowingContinuation { continuation in
             executeJS(f) { result in
                 continuation.resume(with: result.map { $0 as? T })
             }
         }
+    }
+
+    public func toggleSearchPanel() async throws -> Void? {
+        try await executeJSAsync(
+            f: JavascriptFunction(
+                functionString: "CodeMirror.toggleSearchPanel()"
+            )
+        )
     }
 
     public func getContent() async throws -> String? {
@@ -30,11 +38,11 @@ public class CodeMirrorViewModel: ObservableObject {
     }
 
     public func setContent(_ value: String) {
-        guard let executeJS = executeJS else {
+        guard let executeJS else {
             print("executeJS is not initialized")
             return
         }
-        
+
         executeJS(
             JavascriptFunction(
                 functionString: "CodeMirror.setContent(value)",
