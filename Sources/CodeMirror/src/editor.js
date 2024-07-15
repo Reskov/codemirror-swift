@@ -110,6 +110,11 @@ const editorView = new CodeMirror.EditorView({
   parent: document.body,
 });
 
+
+editorView.dom.addEventListener('focus', () => {
+  editorView.dom.classList.remove('cm-no-first-line-highlight');
+}, true);
+
 // Search
 // Ctrl-F / Cmd-F
 // Start searching
@@ -246,9 +251,11 @@ function setLanguage(lang) {
 }
 
 function setContent(text) {
-  editorView.dispatch({
-    changes: { from: 0, to: editorView.state.doc.length, insert: text },
-  });
+    editorView.dispatch({
+        changes: { from: 0, to: editorView.state.doc.length, insert: text },
+        //selection: {anchor: text.length-1, head:text.length-1 },
+      });
+    editorView.dom.classList.add('cm-no-first-line-highlight');
 }
 
 function getContent() {

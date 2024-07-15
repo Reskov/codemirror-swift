@@ -19,6 +19,15 @@
       .cm-scroller {
         overflow: auto;
       }
+        /* Remove highlight from first line in main editor area when it's the only line selected */
+        .cm-no-first-line-highlight .cm-activeLine {
+          background-color: transparent !important;
+        }
+
+        /* Remove highlight from first line in gutter when it's the only line selected */
+        .cm-no-first-line-highlight .cm-activeLineGutter {
+          background-color: transparent !important;
+        }
     </style>
   </head>
 
