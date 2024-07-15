@@ -48,7 +48,7 @@ const readOnly = new Compartment();
 const lineWrapping = new Compartment();
 const SUPPORTED_LANGUAGES_MAP = {
   javascript,
-  json: () => [json(), linter(jsonParseLinter())],
+  json: () => [json(), lintGutter(), linter(jsonParseLinter())],
   yaml,
   python,
   xml,
@@ -101,7 +101,6 @@ const editorView = new CodeMirror.EditorView({
     language.of([]),
     listener.of([]),
     foldGutter(),
-    lintGutter(),
     codeFolding({
         preparePlaceholder: preparePlaceholder,
         placeholderDOM: placeholderDOM
