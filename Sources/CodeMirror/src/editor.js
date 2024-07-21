@@ -141,28 +141,32 @@ function preparePlaceholder(state, range) {
     const to = range.to;
     const doc = state.doc;
     let count;
-    let isObject = true;
+    
     const internal = doc.sliceString(from, to);
     const plugin = language.get(state);
     const languageObject = Array.isArray(plugin) ? plugin[0] : plugin;
     const lang = languageObject.language.name;
+    let parsableContent = internal;
     
-    if (!["python", "javascript", "json"].includes(lang)) {
-        // yaml todo
+    if (!["python", "javascript", "json", "yaml"].includes(lang)) {
         return '\u2194';
     }
-
-    // Determine if it's an object/dict or array/list
-    const prevLine = doc.lineAt(from).text;
-    if (prevLine.trim().endsWith(':') || prevLine.includes('{') || prevLine.includes('dict(')) {
-        isObject = true;
-    } else if (prevLine.includes('[') || prevLine.includes('list(')) {
-        isObject = false;
+    if (lang === "yaml") {
+        // Count non-empty lines for YAML
+        const lines = internal.split('\n').filter(line => line.trim() !== '');
+        count = lines.length;
+        return `\u21A4${count} lines\u21A6`;
     }
-
-    let parsableContent = internal;
-
+    
+    let isObject = true;
+    const prevLine = doc.lineAt(from).text.trim();
     if (lang === "python") {
+        if (prevLine.endsWith(':') || prevLine.includes('{') || prevLine.startsWith('dict(')) {
+            isObject = true;
+        } else if (prevLine.includes('[') || prevLine.startsWith('list(')) {
+            isObject = false;
+        }
+        
         parsableContent = parsableContent
             .replace(/'/g, '"')  // Replace single quotes with double quotes
             .replace(/None/g, 'null')  // Replace None with null
@@ -171,37 +175,22 @@ function preparePlaceholder(state, range) {
             .replace(/,\s*}/g, '}')  // Remove trailing commas in objects
             .replace(/,\s*]/g, ']')  // Remove trailing commas in arrays
             .replace(/([{,]\s*)(\w+):/g, '$1"$2":');  // Add quotes to keys
-    } else if (lang === "yaml") {
-        // Convert YAML to JSON-like structure
-        parsableContent = parsableContent
-            .split('\n')
-            .map(line => line.trim())
-            .filter(line => line && !line.startsWith('#'))
-            .map(line => line.replace(/^(\s*-\s*)/g, ''))
-            .join(',');
-
-        if (isObject) {
-            parsableContent = '{' + parsableContent + '}';
-        } else {
-            parsableContent = '[' + parsableContent + ']';
+        
+    } else if (lang === "javascript" || lang === "json") {
+        if (prevLine.endsWith('{') || prevLine.startsWith('{')) {
+            isObject = true;
+        } else if (prevLine.endsWith('[') || prevLine.startsWith('[')) {
+            isObject = false;
         }
     }
-
     // Try parsing
+    parsableContent = isObject ? `{ ${parsableContent} }` : `[${parsableContent}]`
+    
     try {
-        const parsed = JSON.parse(isObject && lang !== "yaml" ? `{${parsableContent}}` : `[${parsableContent}]`);
+        const parsed = JSON.parse(parsableContent);
         count = isObject ? Object.keys(parsed).length : parsed.length;
     } catch (e) {
-        // If parsing fails, fall back to line counting
-        const lines = internal.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
-
-        if (isObject) {
-            // Count key-value pairs for objects/dicts
-            count = lines.filter(line => line.includes(':')).length;
-        } else {
-            // Count items for arrays/lists
-            count = lines.length;
-        }
+        count = fallbackCountKeysOrItems(parsableContent, isObject)
     }
 
     if (count !== undefined) {
@@ -209,6 +198,59 @@ function preparePlaceholder(state, range) {
     } else {
         return '\u2194';
     }
+}
+
+
+function fallbackCountKeysOrItems(str, isObject) {
+    let count = 0;
+    let inQuotes = false;
+    let escape = false;
+    let depth = 0;
+
+    for (let i = 0; i < str.length; i++) {
+        const char = str[i];
+
+        // Toggle inQuotes flag
+        if (char === '"' && !escape) {
+            inQuotes = !inQuotes;
+        }
+
+        // Handle escape character
+        if (char === '\\' && inQuotes) {
+            escape = !escape;
+        } else {
+            escape = false;
+        }
+
+        if (!inQuotes) {
+            if (isObject) {
+                // For objects, count keys at depth 1
+                if (char === '{') {
+                    depth++;
+                } else if (char === '}') {
+                    depth--;
+                } else if (char === ':' && depth === 1) {
+                    count++;
+                }
+            } else {
+                // For arrays, count items at depth 1
+                if (char === '[') {
+                    depth++;
+                } else if (char === ']') {
+                    depth--;
+                } else if (char === ',' && depth === 1) {
+                    count++;
+                }
+            }
+        }
+    }
+
+    // For arrays, we need to add one more to the count as items are separated by commas
+    if (!isObject && depth === 0 && str.trim().length > 2) {
+        count++;
+    }
+
+    return count;
 }
 
 
