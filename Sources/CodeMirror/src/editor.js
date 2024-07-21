@@ -285,6 +285,25 @@ function setLineWrapping(enabled) {
   });
 }
 
+// Define default configuration
+const defaultConfig = {
+    darkMode: false,
+    lineWrapping: false,
+    readOnly: false,
+    language: 'txt'
+};
+
+function initializeCodeMirror() {
+    // Merge default config with initialConfig (if it exists)
+    const config = Object.assign({}, defaultConfig, window.initialEditorConfig || {});
+
+    // Apply configuration
+    setDarkMode(config.darkMode);
+    setLineWrapping(config.lineWrapping);
+    setReadOnly(config.readOnly);
+    setLanguage(config.language);
+}
+
 export {
   setDarkMode,
   setLanguage,
@@ -296,4 +315,5 @@ export {
   setLineWrapping,
   editorView,
   toggleSearchPanel,
+  initializeCodeMirror,
 };

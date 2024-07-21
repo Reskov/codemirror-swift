@@ -46,6 +46,7 @@ public struct CodeMirrorView: NativeView {
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
+
         #if os(OSX)
             webView.setValue(false, forKey: "drawsBackground") // prevent white flicks
             webView.allowsMagnification = false
@@ -60,9 +61,24 @@ public struct CodeMirrorView: NativeView {
         )
 
         let baseURL = Bundle.module.url(forResource: "build", withExtension: nil)
-        let data = try! Data(contentsOf: indexURL!)
-        webView.load(data, mimeType: "text/html", characterEncodingName: "utf-8", baseURL: baseURL!)
+        var htmlString = try! String(contentsOf: indexURL!, encoding: .utf8)
+        
+        // Inject configuration
+        let config = """
+            <script>
+                window.initialEditorConfig = {
+                    darkMode: \(viewModel.darkMode),
+                    lineWrapping: \(viewModel.lineWrapping),
+                    readOnly: \(viewModel.readOnly),
+                    language: "\(viewModel.language.rawValue)"
+                };
+            </script>
+        """
+        
+        htmlString = htmlString.replacingOccurrences(of: "</head>", with: "\(config)</head>")
+        webView.loadHTMLString(htmlString, baseURL: baseURL!)
 
+        
         context.coordinator.webView = webView
         return webView
     }
