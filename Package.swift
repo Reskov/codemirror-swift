@@ -22,7 +22,7 @@ let package = Package(
             exclude: [
                 "src/node_modules",
                 "src/editor.js",
-                "src/rollup.config.js",
+                "src/rollup.config.mjs",
                 "src/package.json",
                 "src/package-lock.json",
             ],

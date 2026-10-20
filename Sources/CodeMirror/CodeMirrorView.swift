@@ -35,79 +35,14 @@ public struct CodeMirrorView: NativeView {
     #endif
 
     private func createWebView(context: Context) -> WKWebView {
-        let preferences = WKPreferences()
-        let userController = WKUserContentController()
-        userController.add(context.coordinator, name: ScriptMessageName.codeMirrorDidReady)
-        userController.add(context.coordinator, name: ScriptMessageName.codeMirrorContentDidChange)
-
-        let configuration = WKWebViewConfiguration()
-        configuration.preferences = preferences
-        configuration.userContentController = userController
-
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.navigationDelegate = context.coordinator
-
-        #if os(OSX)
-            webView.setValue(false, forKey: "drawsBackground") // prevent white flicks
-            webView.allowsMagnification = false
-        #elseif os(iOS)
-            webView.isOpaque = false
-        #endif
-
-        let indexURL = Bundle.module.url(
-            forResource: "index",
-            withExtension: "html",
-            subdirectory: "build"
-        )
-
-        let baseURL = Bundle.module.url(forResource: "build", withExtension: nil)
-        var htmlString = try! String(contentsOf: indexURL!, encoding: .utf8)
-        
-        // Inject configuration
-        let config = """
-            <script>
-                window.initialEditorConfig = {
-                    darkMode: \(viewModel.darkMode),
-                    lineWrapping: \(viewModel.lineWrapping),
-                    readOnly: \(viewModel.readOnly),
-                    language: "\(viewModel.language.rawValue)"
-                };
-            </script>
-        """
-        
-        htmlString = htmlString.replacingOccurrences(of: "</head>", with: "\(config)</head>")
-        webView.loadHTMLString(htmlString, baseURL: baseURL!)
-
-        
-        context.coordinator.webView = webView
-        return webView
+        let editor = CodeMirrorWebViewPool.shared.dequeue(configuration: viewModel.configuration)
+        context.coordinator.attach(editor)
+        context.coordinator.apply(viewModel.configuration)
+        return editor.webView
     }
 
     private func updateWebView(context: Context) {
-        context.coordinator.queueJavascriptFunction(
-            JavascriptFunction(
-                functionString: "CodeMirror.setDarkMode(value)",
-                args: ["value": viewModel.darkMode]
-            )
-        )
-        context.coordinator.queueJavascriptFunction(
-            JavascriptFunction(
-                functionString: "CodeMirror.setLineWrapping(value)",
-                args: ["value": viewModel.lineWrapping]
-            )
-        )
-        context.coordinator.queueJavascriptFunction(
-            JavascriptFunction(
-                functionString: "CodeMirror.setReadOnly(value)",
-                args: ["value": viewModel.readOnly]
-            )
-        )
-        context.coordinator.queueJavascriptFunction(
-            JavascriptFunction(
-                functionString: "CodeMirror.setLanguage(value)",
-                args: ["value": viewModel.language.rawValue]
-            )
-        )
+        context.coordinator.apply(viewModel.configuration)
     }
 
     public func makeCoordinator() -> Coordinator {
@@ -128,10 +63,64 @@ public class Coordinator: NSObject {
 
     private var pageLoaded = false
     private var pendingFunctions = [(JavascriptFunction, JavascriptCallback?)]()
+    private var appliedConfiguration = EditorConfiguration()
 
     init(parent: CodeMirrorView, viewModel: CodeMirrorViewModel) {
         self.parent = parent
         self.viewModel = viewModel
+    }
+
+    func attach(_ editor: EditorWebView) {
+        webView = editor.webView
+        appliedConfiguration = editor.configuration
+        pageLoaded = editor.router.isEditorReady
+        editor.router.coordinator = self
+
+        if pageLoaded {
+            callPendingFunctions()
+        }
+
+        if editor.router.didFinishNavigation {
+            DispatchQueue.main.async {
+                self.parent.viewModel.onLoadSuccess?()
+            }
+        }
+    }
+
+    func apply(_ configuration: EditorConfiguration) {
+        if configuration.darkMode != appliedConfiguration.darkMode {
+            queueJavascriptFunction(
+                JavascriptFunction(
+                    functionString: "CodeMirror.setDarkMode(value)",
+                    args: ["value": configuration.darkMode]
+                )
+            )
+        }
+        if configuration.lineWrapping != appliedConfiguration.lineWrapping {
+            queueJavascriptFunction(
+                JavascriptFunction(
+                    functionString: "CodeMirror.setLineWrapping(value)",
+                    args: ["value": configuration.lineWrapping]
+                )
+            )
+        }
+        if configuration.readOnly != appliedConfiguration.readOnly {
+            queueJavascriptFunction(
+                JavascriptFunction(
+                    functionString: "CodeMirror.setReadOnly(value)",
+                    args: ["value": configuration.readOnly]
+                )
+            )
+        }
+        if configuration.language != appliedConfiguration.language {
+            queueJavascriptFunction(
+                JavascriptFunction(
+                    functionString: "CodeMirror.setLanguage(value)",
+                    args: ["value": configuration.language.rawValue]
+                )
+            )
+        }
+        appliedConfiguration = configuration
     }
 
     func queueJavascriptFunction(

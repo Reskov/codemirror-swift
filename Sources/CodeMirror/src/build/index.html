@@ -35,14 +35,14 @@
     <script src="editor.bundle.js"></script>
     <script>
       if (window.webkit) {
-        window.webkit.messageHandlers.codeMirrorDidReady.postMessage(null);
-
         CodeMirror.setListener(() => {
           window.webkit.messageHandlers.codeMirrorContentDidChange.postMessage(
             null
           );
         });
-        CodeMirror.initializeCodeMirror()
+        CodeMirror.initializeCodeMirror();
+
+        window.webkit.messageHandlers.codeMirrorDidReady.postMessage(null);
       }
     </script>
   </body>
